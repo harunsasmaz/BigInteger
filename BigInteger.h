@@ -99,7 +99,7 @@ class BigInteger {
         // Subtraction operations
         const BigInteger operator - (const BigInteger&) const;
         BigInteger& operator -= (const BigInteger&);
-        BigInteger& operator -- ();
+        BigInteger& operator -- () noexcept;
         
         // Multiplication operations
         const BigInteger& operator * (const BigInteger&) const;

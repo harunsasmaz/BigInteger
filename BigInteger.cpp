@@ -122,7 +122,7 @@ BN & BN::operator = (const BN& bn)
 {
     if (this == &bn)
         return *this;
-        
+
     data = bn.data;
     return *this;
 }
@@ -134,4 +134,116 @@ BN & BN::operator = (BN&& bn) noexcept
 
     data = move(bn.data);
     return *this;
+}
+
+// Addition operations
+
+const BN BN::operator + (const BN& bn) const 
+{
+    return (move(BN(*this)) += bn);
+}
+
+BN & BN::operator ++()
+{
+    for (auto& i : data) {
+        ++i;
+        if (i != 0)
+            return *this;
+    }
+    data.emplace_back(1);
+    return *this;
+}
+
+BN& BN::operator += (const BN& bn) {
+    data.resize(max(data.size(), bn.data.size()));
+
+    bt2 sum = 0;
+    for(size_t pos = 0; pos < bn.data.size(); pos++) {
+        sum = (sum >> bz8) + data[pos] + bn.data[pos];
+        data[pos] = sum;
+    }
+
+    for(size_t pos = bn.data.size(); pos < data.size(); pos++) {
+        sum = (sum >> bz8) + data[pos];
+        data[pos] = sum;
+    }
+
+    sum >>= bz8;
+    if (sum)
+        data.emplace_back(sum);
+    return *this;
+}
+
+// Subtraction operations
+
+const BN BN::operator - (const BN& bn) const
+{
+    return move(BN(*this) -= bn);
+}
+
+BN & BN::operator -- () noexcept
+{
+    for (auto& i : data) {
+        if (i) {
+            --i;
+            return *this;
+        }
+        --i;
+    }
+
+    norm(data);
+    return *this;
+}
+
+BN& BN::operator -= (const BN& bn)
+{
+    if (data.size() < bn.data.size())
+        data.resize(bn.data.size());
+
+    bool flag = 0;
+    size_t pos = 0;
+    for (; pos < bn.data.size() && pos < data.size(); ++pos) {
+        bt2s res = static_cast<bt2s>(data[pos]) - bn.data[pos] - flag;
+        data[pos] = static_cast<bt>(res);
+        flag = (res < 0);
+    }
+
+    for (; flag && pos < data.size(); ++pos) {
+        if (data[pos])
+            flag = false;
+        --data[pos];
+    }
+
+    norm(data);
+    return *this;
+}
+
+// Base operations
+
+BN BN::mulbt(size_t t) const
+{
+    if(t == 0)
+        return *this;
+
+    BN res(data.size() + t, 0);
+    for(size_t i = 0; i < data.size(); ++i)
+        res.data[i + t] = data[i];
+    norm(res.data);
+    return res;
+}
+
+BN BN::divbt(size_t t) const
+{
+    if(t >= data.size())
+        return BN::BigInteger0();
+
+    return move(vector<bt>(data.begin() + t, data.end()));
+}
+
+BN BN::modbt(size_t t) const
+{
+    if(t >= data.size())
+        return *this;
+
+    return move(vector<bt>(data.begin(), data.begin() + t));
 }
