@@ -400,3 +400,69 @@ const BN BN::operator % (const BN& bn) const
     divmod(bn,div,mod);
     return move(mod);   
 }
+
+// Conditional operations
+
+bool BN::operator < (const BN& bn) const noexcept
+{
+    // TODO: maybe can be replaced to compare ba and bn.ba
+    if(data.size() > bn.data.size())
+        return false;
+    if(data.size() < bn.data.size())
+        return true;
+    for(size_t i = data.size() - 1; i < data.size(); i--)
+    {
+        if(data[i] > bn.data[i])
+            return false;
+        if(data[i] < bn.data[i])
+            return true;
+    }
+
+    return false;
+}
+
+bool BN::operator > (const BN& bn) const noexcept
+{
+    return bn < *this;
+}
+
+bool BN::operator <= (const BN& bn) const noexcept
+{
+    return !(*this > bn);
+}
+
+bool BN::operator >= (const BN& bn) const noexcept
+{
+    return !(*this < bn);
+}
+
+bool BN::operator == (const BN& bn) const noexcept
+{
+    return data == bn.data;
+}
+
+bool BN::operator != (const BN& bn) const noexcept
+{
+    return !(*this == bn);
+}
+
+bt BN::operator [](size_t index) const noexcept
+{
+    return data[index];
+}
+
+size_t BN::digit_count() const noexcept
+{
+    return data.size();
+}
+
+size_t BN::bit_count() const noexcept
+{
+    size_t x = 0;
+    bt value = data.back();
+    while (value) {
+        ++x;
+        value >>= 1;
+    }
+    return (data.size() - 1) * bz8 + x;
+}
