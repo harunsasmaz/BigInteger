@@ -112,8 +112,8 @@ class BigInteger {
 
         // Division operations
         void divmod(const BigInteger&, BigInteger& div, BigInteger& mod) const;
-        const BigInteger& operator / (const BigInteger&) const;
-        const BigInteger& operator % (const BigInteger&) const;
+        const BigInteger operator / (const BigInteger&) const;
+        const BigInteger operator % (const BigInteger&) const;
 
         // Right shift operations
         const BigInteger operator >> (size_t shift) const;

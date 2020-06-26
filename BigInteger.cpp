@@ -386,3 +386,17 @@ const BN BN::fast_mul(const BN& bn) const {
 /* TODO: Karatsuba Multiplication Implementation */
 
 /* TODO: divmod function implementation */
+
+const BN BN::operator / (const BN& bn) const
+{
+    BN div,mod;
+    divmod(bn,div,mod);
+    return move(div);
+}
+
+const BN BN::operator % (const BN& bn) const
+{
+    BN div,mod;
+    divmod(bn,div,mod);
+    return move(mod);   
+}
