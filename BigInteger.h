@@ -102,7 +102,7 @@ class BigInteger {
         BigInteger& operator -- () noexcept;
         
         // Multiplication operations
-        const BigInteger& operator * (const BigInteger&) const;
+        const BigInteger operator * (const BigInteger&) const;
         // naive multiplication O(n ^ 2)
         const BigInteger naive_mul(const BigInteger&) const;
         // quick multiplication O(n ^ 2)

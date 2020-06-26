@@ -248,6 +248,7 @@ BN BN::modbt(size_t t) const
     return move(vector<bt>(data.begin(), data.begin() + t));
 }
 
+// Base multiplciation
 const BN BN::mulbase(const bt & multiplier) const
 {
     return move(BN(*this).mulbaseappr(multiplier));
@@ -271,6 +272,7 @@ BN& BN::mulbaseappr(const bt &multiplier)
     return *this;
 }
 
+// Base division
 const BN BN::divbase(const bt & divider) const 
 {
     return move(BN(*this).divbaseappr(divider));
@@ -291,6 +293,7 @@ BN& BN::divbaseappr(const bt &diviser)
     return *this;
 }
 
+// Base modulo
 const BN BN::modbase(const bt &diviser)const
 {
     if(diviser == 0)
@@ -319,8 +322,67 @@ BN& BN::modbaseappr(const bt &diviser)
         data[i] = curr / diviser;
         curr %= diviser;
     }
-    
+
     data.resize(1);
     data[0] = curr;
     return *this;
 }
+
+// Multiplication operations
+
+const BN BN::operator * (const BN& bn) const
+{
+    return karatsuba_mul(bn);
+}
+
+const BN BN::naive_mul(const BN& bn) const {
+    // classical O(n*n) multiplication.
+    // b * a is slightly faster than a * b
+    const BN& b = data.size() > bn.data.size() ? *this : bn;
+    const BN& a = data.size() > bn.data.size() ? bn : *this;
+
+    if (a.data.size() == 1)
+        return b.mulbase(a.data.front());
+
+
+    BN result(a.data.size() + b.data.size(), 0);
+    for (size_t i = 0; i < b.data.size(); ++i) {
+        bt2 curr = 0;
+        bt2 x = b.data[i];
+        for (size_t j = 0; j < a.data.size(); ++j) {
+            curr = (curr >> bz8) + result.data[i + j] + x * a.data[j];
+            result.data[i + j] = curr;
+        }
+        result.data[i + a.data.size()] = curr >> bz8;
+    }
+    norm(result.data);
+    return result;
+}
+
+const BN BN::fast_mul(const BN& bn) const {
+    size_t n = data.size();
+    size_t m = bn.data.size();
+
+    BN result(n + m, 0);
+
+    bt4 t = 0;
+    for(size_t s = 0; s < m + n - 1; s++) {
+
+        size_t end_index = min(n - 1, s);
+        size_t start_index = s >= m ? s - m + 1 : 0;
+        for(size_t i = start_index, j = s - start_index; i <= end_index; i++, --j)
+            t += static_cast<bt2>(data[i]) * bn.data[j];
+
+
+        result.data[s] = t;
+        t = t >> bz8;
+    }
+
+    result.data.back() = t;
+    norm(result.data);
+    return move(result);
+}
+
+/* TODO: Karatsuba Multiplication Implementation */
+
+/* TODO: divmod function implementation */
