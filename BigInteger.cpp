@@ -247,3 +247,80 @@ BN BN::modbt(size_t t) const
 
     return move(vector<bt>(data.begin(), data.begin() + t));
 }
+
+const BN BN::mulbase(const bt & multiplier) const
+{
+    return move(BN(*this).mulbaseappr(multiplier));
+}
+
+BN& BN::mulbaseappr(const bt &multiplier)
+{
+    if (!multiplier) {
+        data.resize(1);
+        data.front() = 0;
+        return *this;
+    }
+
+    bt2 curr = 0;
+    for(auto& i : data) {
+        i = curr += static_cast<bt2>(i) * multiplier;
+        curr >>= bz8;
+    }
+    if (curr)
+        data.emplace_back(curr);
+    return *this;
+}
+
+const BN BN::divbase(const bt & divider) const 
+{
+    return move(BN(*this).divbaseappr(divider));
+}
+
+BN& BN::divbaseappr(const bt &diviser)
+{
+    if(diviser == 0)
+        throw divide_by_zero();
+
+    bt2 curr = 0;
+    for (size_t i = data.size(); i; --i) {
+        curr = (curr % diviser << bz8) + data[i - 1];
+        data[i - 1] = curr / diviser;
+    }
+
+    norm(data);
+    return *this;
+}
+
+const BN BN::modbase(const bt &diviser)const
+{
+    if(diviser == 0)
+        throw divide_by_zero();
+
+    bt2 curr=0;
+    for (size_t i = data.size()- 1; i < data.size(); --i) {
+        curr <<= bz8;
+        curr += data[i];
+        curr %= diviser;
+    }
+
+    BN result;
+    result.data[0]=curr;
+    return result;
+}
+
+BN& BN::modbaseappr(const bt &diviser)
+{
+    if(diviser == 0)
+        throw divide_by_zero();
+    bt2 curr = 0;
+    for(size_t i = data.size() - 1; i < data.size(); --i) {
+        curr <<= bz8;
+        curr += data[i];
+        data[i] = curr / diviser;
+        curr %= diviser;
+    }
+    
+    data.resize(1);
+    data[0] = curr;
+    return *this;
+}

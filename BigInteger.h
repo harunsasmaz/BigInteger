@@ -76,16 +76,16 @@ class BigInteger {
         BigInteger modbt(size_t mod) const;
 
         // Base multiplication
-        const BigInteger mulbase(bt&) const;
-        BigInteger mulbaseappr(const bt&);
+        const BigInteger mulbase(const bt&) const;
+        BigInteger& mulbaseappr(const bt&);
 
         // Base division
-        const BigInteger divbase(bt&) const;
-        BigInteger divbaseappr(const bt&);
+        const BigInteger divbase(const bt&) const;
+        BigInteger& divbaseappr(const bt&);
 
         // Base modulo
-        const BigInteger modbase(bt&) const;
-        BigInteger modbaseappr(const bt&);
+        const BigInteger modbase(const bt&) const;
+        BigInteger& modbaseappr(const bt&);
 
         // Assignment operations
         BigInteger& operator = (const BigInteger&);
