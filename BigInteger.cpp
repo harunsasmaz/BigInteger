@@ -451,6 +451,8 @@ bt BN::operator [](size_t index) const noexcept
     return data[index];
 }
 
+// Digit information
+
 size_t BN::digit_count() const noexcept
 {
     return data.size();
@@ -465,4 +467,14 @@ size_t BN::bit_count() const noexcept
         value >>= 1;
     }
     return (data.size() - 1) * bz8 + x;
+}
+
+// Shift operations
+
+const BN BN::operator >> (size_t shift) const {
+    return move(BN(*this) >>= shift);
+}
+
+const BN BN::operator << (size_t shift) const {
+    return move(BN(*this) <<= shift);
 }
