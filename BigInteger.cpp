@@ -383,7 +383,99 @@ const BN BN::fast_mul(const BN& bn) const {
     return move(result);
 }
 
-/* TODO: Karatsuba Multiplication Implementation */
+// Karatsuba Multiplication Algorithm
+
+inline vector<bt> karatsubaSum(const vector<bt>& u, size_t start, size_t n, size_t m) 
+{
+    vector<bt> result;
+    result.reserve(m + 1);
+
+    bt2 sum = 0;
+    for (size_t pos = 0; pos < n; ++pos) {
+        sum += u[start + pos] + u[start + pos + n];
+        result.emplace_back(sum);
+        sum >>= bz8;
+    }
+    if (n != m) {
+        sum += u[start + n + n];
+        result.emplace_back(sum);
+        sum >>= bz8;
+    }
+    result.emplace_back(sum);
+    return move(result);
+}
+
+vector<bt> karatsubaRecursive(const vector<bt>& U, const vector<bt>& V, size_t start, size_t count) 
+{
+    const size_t len = count, n = len / 2, m = len - n;
+
+    if (n < karatsuba_min_size) {
+        vector<bt> result;
+        result.reserve(len + len);
+
+        bt4 t = 0;
+        for(size_t s = 0; s < len + len - 1; s++) {
+
+            size_t end_index = min(len - 1, s) + start;
+            size_t start_index = s >= len ? s - len + 1 : 0;
+            for(size_t i = start_index + start, j = s - start_index + start; i <= end_index; i++, --j)
+                t += static_cast<bt2>(U[i]) * V[j];
+
+
+            result.emplace_back(t);
+            t = t >> bz8;
+        }
+        result.emplace_back(t);
+        return move(result);
+    }
+
+    const vector<bt>& u01 = karatsubaSum(U, start, n, m);
+    const vector<bt>& v01 = karatsubaSum(V, start, n, m);
+
+    vector<bt> A = move(karatsubaRecursive(U, V, start + n, m));
+    vector<bt> B = move(karatsubaRecursive(U, V, start, n));
+    const vector<bt> C = move(karatsubaRecursive(u01, v01, 0, m + 1));
+
+    vector<bt> result = B;
+    result.resize(len + len);
+
+    for (size_t i = 0; i < A.size(); ++i)
+        result[i + n + n] = A[i];
+
+    const size_t abcSize = m + m + 2;
+    A.resize(abcSize);
+    B.resize(abcSize);
+
+    bt2s sum = 0;
+    for (size_t i = 0; i < abcSize; ++i) {
+        sum += result[i + n];
+        sum += C[i];
+        sum -= A[i];
+        sum -= B[i];
+        result[i + n] = sum;
+        sum >>= bz8;
+    }
+    for (size_t i = n + abcSize; i < result.size(); ++i) {
+        sum += result[i];
+        result[i] = sum;
+        sum >>= bz8;
+    }
+    return move(result);
+}
+
+const BN BN::karatsuba_mul(const BN& bn) const 
+{
+    size_t x = data.size(), y = bn.data.size(), len = max(x, y);
+
+    if(min(x, y) < karatsuba_min_size)
+        return this->fast_mul(bn);
+
+    vector<bt> U = data;
+    vector<bt> V = bn.data;
+    U.resize(len); V.resize(len);
+
+    return karatsubaRecursive(U, V, 0, len);
+}
 
 /* TODO: divmod function implementation */
 
