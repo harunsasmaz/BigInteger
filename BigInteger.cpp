@@ -1228,3 +1228,4 @@ string to_string(BN bn)
     return s;
 }
 
+// End of class
