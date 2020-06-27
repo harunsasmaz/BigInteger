@@ -689,4 +689,363 @@ BN BN::fast_qrt() const
     return move(result);
 }
 
+// Left-Right rotations
+
+BN BN::expRightToLeft(const BN& exponent, const BN& mod) const 
+{
+    if(exponent.isZero())
+        return BN::BigInteger1();
+
+    BN result(BN::BigInteger1());
+    BN S = *this % mod;
+
+    size_t len = exponent.bit_count();
+    bt mask = 1;
+    const bt *curr = &*exponent.data.begin();
+    for(size_t i = 0; i < len; i++) {
+        if(!mask) {
+            mask = 1;
+            ++curr;
+        }
+        if(*curr & mask)
+            result = move(result * S % mod);
+
+        if (i + 1 != len)
+            S = move(S.qrt() % mod);
+        mask <<= 1;
+    }
+    return result;
+}
+
+vector<BN> BN::expLeftToRightK_aryPrecomputation(const BN& mod) const 
+{
+    BN g = *this % mod;
+    vector <BN> garr(KarySize);
+    garr[0] = BN::BigInteger1();
+    for(size_t i = 1; i < KarySize; i++) {
+        garr[i] = garr[i-1] * g % mod;
+    }
+    return move(garr);
+}
+
+BN BN::expLeftToRightK_ary(const BN& exponent, const BN& mod, const vector<BN>& g) const 
+{
+    if(exponent.isZero())
+        return BN::BigInteger1();
+
+    BN A(BN::BigInteger1());
+    for(int i = exponent.data.size() - 1; i >= 0; i--) {
+        bt value = exponent.data[i];
+        for (size_t b = bz - 1; b < bz; --b) {
+            for(size_t k = 0; k < KaryBits; k++)
+                A = A.qrt() % mod;
+            A = A * g[(value >> KaryBits * b) & KaryMask] % mod;
+        }
+    }
+    return A;
+}
+
+vector<BN> BN::expLeftToRightK_aryVarPrecomputation(const BN& mod, size_t K) const 
+{
+    int Kmax = (1 << K);
+    BN g = *this % mod;
+
+    vector <BN> garr(Kmax);
+    garr[0] = BN::BigInteger1();
+
+    for(int i = 1; i < Kmax; i++) {
+        garr[i] = garr[i-1] * g % mod;
+    }
+
+    return move(garr);
+}
+
+BN BN::expLeftToRightK_aryVar(const BN& exponent, const BN& mod, const vector<BN>& g, size_t K) const 
+{
+    if(exponent.isZero())
+        return BN::BigInteger1();
+
+    BN A(BN::BigInteger1());
+
+    int x = K;
+    for(size_t i = exponent.data.size() * bz8 - 1; i >= K; i -= K) {
+        x = i;
+        for(size_t k = 0; k < K; k++)
+            A = A.qrt() % mod;
+        int curr = 0;
+        for(size_t k = 0; k < K; k++) {
+            curr <<= 1;
+            curr |= exponent.get_bit(i-k);
+        }
+        A = A * g[curr] % mod;
+    }
+
+    uint32_t curr = 0;
+    for(int i = x - K; i >= 0; i--) {
+        A = A.qrt() % mod;
+        curr <<= 1;
+        curr |= exponent.get_bit(i);
+    }
+    return A * g[curr] % mod;
+}
+
+vector <BN> BN::expLeftToRightK_aryModifPrecomputation(const BN& mod) const 
+{
+    BN g = *this % mod;
+    vector<BN> garr(KarySize);
+
+    garr[0] = BN::BigInteger1();
+    garr[1] = g; garr[2] = g.qrt() % mod;
+
+    for(size_t i = 1; i < KarySize / 2; i++)
+        garr[2 * i + 1] = garr[2 * i - 1] * garr[2] % mod;
+
+    return move(garr);
+}
+
+BN BN::expLeftToRightK_aryMod(const BN& exponent, const BN& mod, const vector<BN>& g) const 
+{
+    if(exponent.isZero())
+        return BN::BigInteger1();
+
+    BN A(BN::BigInteger1());
+    for(int i = exponent.data.size() - 1; i >= 0; i--) {
+        for (size_t b = bz - 1; b < bz; --b) {
+            bt ei = (exponent.data[i] >> KaryBits * b) & KaryMask;
+
+            size_t hi = 0;
+            if(ei != 0) {
+                while(! (ei & 1)) {
+                    ei >>= 1;
+                    hi++;
+                }
+            }
+
+            for(size_t k = 0; k + hi < KaryBits; k++)
+                A = A.qrt() % mod;
+            A = A * g[ei] % mod;
+            for(size_t k = 0; k < hi; k++)
+                A = A.qrt() % mod;
+        }
+    }
+
+    return A;
+}
+
+vector<BN> BN::expSlidingWindowPrecomputation(const BN& mod, size_t k) const 
+{
+    size_t k_pow = 2 << (k-1);
+    vector <BN> garr (k_pow);
+    BN g = *this % mod;
+
+    garr[0] = BN::BigInteger1(); 
+    garr[1] = g;
+    garr[2] = g.qrt() % mod;
+
+    for(size_t i = 1; i < k_pow / 2; i++)
+        garr[2 * i + 1] = garr[2 * i - 1] * garr[2] % mod;
+
+    return move(garr);
+}
+
+// Sliding Window
+
+BN BN::expSlidingWindow(const BN& exponent, const BN& mod, const vector<BN>& g, size_t K) const 
+{
+    BN A(BN::BigInteger1());
+    int i = exponent.bit_count() - 1;
+
+    while (i >= 0) {
+        if(exponent.get_bit(i) == 0) {
+            A = A.qrt() % mod;
+            i--;
+            continue;
+        }
+        int l = max(i - static_cast<int>(K) + 1, 0);
+        while(exponent.get_bit(l) == 0)
+            l++;
+
+        int gx = 0;
+        for(int j = i; j >= l; j--)
+            gx = (gx << 1) | exponent.get_bit(j);
+        for(int j = 0; j < i - l + 1; j++)
+            A = A.qrt() % mod;
+        A = A * g[gx] % mod;
+        i = l - 1;
+    }
+
+    return A;
+}
+
+vector<BN> BN::expBest_SlidePrecomp(const BN& mod) const 
+{
+    vector <BN> garr (KarySize);
+    BN mu = reductionBarrettPrecomputation(mod);
+    BN g = this -> reductionBarrett(mod, mu);
+
+    garr[0] = BN::BigInteger1();
+    garr[1] = g;
+    garr[2] = g.qrt().reductionBarrett(mod,mu);
+
+    for(bt2 i = 1; i < KarySize/ 2; i++)
+        garr[2 * i + 1] = (garr[2 * i - 1] * garr[2]).reductionBarrett(mod,mu);
+
+    return move(garr);
+}
+
+BN BN::expBest_Slide(const BN& exponent, const BN& mod, const vector<BN>& g) const 
+{
+    BN A(BN::BigInteger1());
+    BN mu = reductionBarrettPrecomputation(mod);
+    int i = exponent.bit_count() - 1;
+    int k = KaryBits;
+
+    while (i >= 0) 
+    {
+        if(exponent.get_bit(i) == 0) {
+            A = A.qrt().reductionBarrett(mod, mu);
+            i--;
+            continue;
+        }
+
+        int l = max(i - k + 1, 0);
+        while(exponent.get_bit(l) == 0)
+            l++;
+
+        int gx = 0;
+        for(int j = i; j >= l; j--)
+            gx = (gx << 1) | exponent.get_bit(j);
+        for(int j = 0; j < i - l + 1; j++)
+            A = A.qrt().reductionBarrett(mod, mu);
+
+        A = (A * (g[gx])).reductionBarrett(mod, mu);
+        i = l - 1;
+    }
+
+    return A;
+}
+
+// Additional bit operations
+
+size_t BN::count_zero_right() const noexcept
+{
+    if (data[0] & 1)
+        return 0;
+    if (isZero())
+        return 0;
+
+    size_t count = 0;
+    while(!data[count])
+        ++count;
+
+    bt last = data[count];
+    size_t result = count * bz8;
+    while(!(last & 1)) {
+        ++result;
+        last >>= 1;
+    }
+    return result;
+}
+
+bool BN::get_bit(size_t index) const noexcept 
+{
+    if(index >= bz8 * data.size())
+        return false;
+
+    bt mask = 1;
+    mask <<= (index % bz8);
+
+    if (data[index / bz8] & mask)
+        return true;
+    return false;
+}
+
+uint64_t BN::get64() const noexcept 
+{
+    uint64_t result = 0;
+    for(size_t i = min(data.size(), sizeof(uint64_t) / bz) - 1; i < sizeof(uint64_t); i--)
+        result = (result << bz8) | data[i];
+    return result;
+}
+
+const vector<bt> BN::raw() const noexcept 
+{
+    return data;
+}
+
+// Value check operations
+
+bool BN::isZero() const noexcept
+{
+    if (data.size() > 1 || data[0])
+        return false;
+    return true;
+}
+
+bool BN::isEven() const noexcept
+{
+    if(data[0] & 1)
+        return false;
+    return true;
+}
+
+// Static default BigInteger instances 0 and 1.
+
+const BN BN::BigInteger0() noexcept {
+    static BN bn(0);
+    return bn;
+}
+
+const BN BN::BigInteger1() noexcept {
+    static BN bn(1);
+    return bn;
+}
+
+// Random generator.
+BN BN::random(size_t byteCount) 
+{
+    vector<bt> result(byteCount / bz);
+    if (result.empty())
+        result.emplace_back(rand() & bmax);
+    else
+        for (auto& i : result)
+            i = rand() & bmax;
+
+    return move(BN(move(result)));
+}
+
+// Print operations
+string to_hexstring(const BN& bn) 
+{
+    string result;
+
+    const auto& raw = bn.raw();
+    for (auto i = raw.rbegin(); i != raw.rend(); ++i) {
+        stringstream stream;
+        stream << hex << setfill('0') << setw(bz * 2) << static_cast<uint32_t>(*i);
+        string group = stream.str();
+        result = result + group;
+    }
+
+    return result;
+}
+
+string to_string(BN bn) 
+{
+    stack<char> chars;
+
+    do {
+        chars.push(bn.modbase(10).get64() + '0');
+        bn.divbaseappr(10);
+    } while (!bn.isZero());
+
+    string s;
+    s.reserve(chars.size() + 1);
+    while (!chars.empty()) {
+        s = s + chars.top();
+        chars.pop();
+    }
+
+    return s;
+}
 

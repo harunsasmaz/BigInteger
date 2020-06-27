@@ -152,6 +152,7 @@ class BigInteger {
         bool isZero() const noexcept;
         bool isEven() const noexcept;
 
+        // Left-Right rotation operations
         BigInteger expRightToLeft(const BigInteger& power, const BigInteger& mod) const;
 
         vector<BigInteger> expLeftToRightK_aryPrecomputation(const BigInteger& mod) const;
@@ -163,6 +164,7 @@ class BigInteger {
         vector<BigInteger> expLeftToRightK_aryModifPrecomputation(const BigInteger&) const;
         BigInteger expLeftToRightK_aryMod(const BigInteger&, const BigInteger&, const vector<BigInteger>&) const;
 
+        // Slide operations
         vector<BigInteger> expSlidingWindowPrecomputation(const BigInteger&, size_t k) const;
         BigInteger expSlidingWindow(const BigInteger&, const BigInteger&, const vector<BigInteger>&, size_t k) const;
 
@@ -170,6 +172,7 @@ class BigInteger {
         vector<BigInteger> expBest_SlidePrecomp(const BigInteger& mod) const;
         BigInteger expBest_Slide(const BigInteger& exponent, const BigInteger& mod, const vector<BigInteger>& g) const;
 
+        // Additional operations
         size_t count_zero_right() const noexcept;
         bool get_bit(size_t i) const noexcept;
         uint64_t get64() const noexcept;   
@@ -179,6 +182,7 @@ class BigInteger {
         vector<bt> data;
 };
 
+// Print BigInteger instances
 string to_string(BigInteger);
 string to_hexstring(const BigInteger &);
 
