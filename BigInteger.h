@@ -139,9 +139,9 @@ class BigInteger {
         // Power Operations (Barret's reduction algorithm)
         BigInteger reductionBarrett(const BigInteger& mod,const BigInteger& mu) const;
         BigInteger pow (uint64_t) const;
-        BigInteger powMod (uint64_t power, const BigInteger& mod) const;
-        BigInteger powMod (const BigInteger& power, const BigInteger& mod) const;
-        BigInteger powModBarrett(const BigInteger& power, const BigInteger& mod) const;
+        BigInteger powmod (uint64_t power, const BigInteger& mod) const;
+        BigInteger powmod (const BigInteger& power, const BigInteger& mod) const;
+        BigInteger powmodBarrett(const BigInteger& power, const BigInteger& mod) const;
 
         // Root operations
         BigInteger sqrt()       const;

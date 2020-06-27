@@ -528,3 +528,89 @@ BN& BN::operator <<= (size_t shift) {
     return *this;
 }
 
+// Power operations
+
+BN BN::reductionBarrett(const BN& mod, const BN& mu) const {
+
+    size_t k = mod.data.size();
+    if(k * 2 < data.size()) {
+        return (*this) % mod;
+    }
+
+    BN q1 = divbt(k-1), q2 = q1*mu, q3 = q2.divbt(k+1);
+    BN r1 = modbt(k + 1), r2 = (q3 * mod).modbt(k+1);
+    r1 -= r2;
+    while (r1 >= mod)
+        r1 -= mod;
+    return r1;
+}
+
+BN BN::pow(uint64_t power) const
+{
+    if (power == 0)
+        return BN::BigInteger1();
+
+    BN res(BN::BigInteger1());
+    BN t = *this;
+
+    do {
+        if (power & 1)
+            res = res * t;
+        power >>= 1;
+        if (power)
+            t = t.qrt();
+    } while (power);
+
+    return res;
+}
+
+BN BN::powmod(uint64_t power, const BN& mod) const
+{
+    if (power == 0)
+        return BN::BigInteger1();
+
+    BN res(BN::BigInteger1());
+    BN t = *this % mod;
+
+    do {
+        if (power & 1)
+            res = res * t % mod;
+        power >>= 1;
+        if (power)
+            t = t.qrt() % mod;
+    } while (power);
+
+    return res;
+}
+
+BN BN::powmod(const BN& power, const BN& mod) const {
+    return expRightToLeft(power, mod);
+}
+
+BN BN::powmodBarrett(const BN& power, const BN& mod) const {
+    if(power.isZero())
+        return BN::BigInteger1();
+
+    BN mu = reductionBarrettPrecomputation(mod);
+    BN res(BN::BigInteger1());
+    BN t = (*this) % mod;
+
+    int len = power.bit_count();
+    bt mask = 1;
+    const bt *curr = &*power.data.begin();
+    for(int i = 0; i < len; i++) {
+        if(!mask) {
+            mask = 1;
+            ++curr;
+        }
+        if( (*curr) & mask)
+            res = (res*t).reductionBarrett(mod, mu);
+
+        if (i + 1 != len)
+            t = t.qrt().reductionBarrett(mod, mu);
+        mask <<= 1;
+    }
+    return res;
+}
+
+
