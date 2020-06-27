@@ -7,7 +7,7 @@ A C++ implementation of BigInteger a.k.a BigNumber class
     - cmake
     - g++
 
-## Compile
+## Compile and Run
 
     - cmake .
     - make
@@ -37,4 +37,4 @@ So, it is better for you to have a look at how this algorithm works
 
 ## Test
 
-* You are given a pre-defined test class which simply tests operations of BigInteger class. You may add other test criterias if you wish or you can simply run <code>main.cpp</code> to see results.
+* You are given a pre-defined test class which simply tests operations of BigInteger class. You may add other test criterias if you wish or you can simply run <code> ./big_int </code> to see results.
