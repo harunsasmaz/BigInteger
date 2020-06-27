@@ -2,6 +2,17 @@
 
 A C++ implementation of BigInteger a.k.a BigNumber class
 
+## Dependencies
+
+    - cmake
+    - g++
+
+## Compile
+
+    - cmake .
+    - make
+    - ./big_int
+
 ## Before You Start
 
 * BigNumber class has a Cryptographic usage and also used in Crypto Currencies.
