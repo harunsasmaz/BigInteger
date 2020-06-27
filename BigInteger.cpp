@@ -477,7 +477,93 @@ const BN BN::karatsuba_mul(const BN& bn) const
     return karatsubaRecursive(U, V, 0, len);
 }
 
-/* TODO: divmod function implementation */
+// divmod operation and division operators
+
+void BN::divmod(const BN& bn, BN& div, BN& mod) const
+{
+    if(bn.isZero())
+        throw divide_by_zero();
+
+    if(bn.data.size() == 1) {
+        div = move(this -> divbase(bn.data.front()));
+        mod = move(this -> modbase(bn.data.front()));
+        return;
+    }
+
+    if(*this < bn) {
+        div = BN::BigInteger0();
+        mod = *this;
+        return;
+    }
+
+    BN dividend(*this), divider(bn);
+
+    bt d = bsize  / (bn.data.back() + 1);
+    if (d != 1) {
+        dividend.mulbaseappr(d);
+        divider.mulbaseappr(d);
+    }
+
+    size_t n = divider.data.size();
+    size_t m = dividend.data.size() - n + 1;
+
+    dividend.data.resize(dividend.data.size() + 2);
+    divider.data.resize(divider.data.size() + 1);
+
+    div.data.resize(m + 1);
+
+    vector<bt> temp(n + 1);
+    for (size_t j = m; j <= m; --j) {
+        bt2 q = (dividend.data[j + n] * bsize + dividend.data[j + n - 1]) / divider.data[n-1];
+        bt2 r = (dividend.data[j + n] * bsize + dividend.data[j + n - 1]) % divider.data[n-1];
+
+        if (q == bsize || q * divider.data[n-2] > bsize * r + dividend.data[j + n - 2]) {
+            --q;
+            r += divider.data[n-1];
+            if (r < bsize && q * divider.data[n-2] > bsize * r + dividend.data[j + n - 2])
+                --q;
+        }
+
+        if (!q) {
+            div.data[j] = 0;
+            continue;
+        }
+
+        bt4s x = 0;
+        for (size_t i = 0; i < n; ++i) {
+            x += dividend.data[j + i];
+            x -= q * divider.data[i];
+            dividend.data[j + i] = x;
+            x >>= bz8;
+        }
+        x += dividend.data[j + n];
+        dividend.data[j + n] = x;
+
+        // If `x' is negative, than `q' is too large.
+        // Decrement `q' and update `dividend'.
+        if (x < 0) {
+            --q;
+            x = 0;
+            for (size_t i = 0; i < n; ++i) {
+                x += dividend.data[j + i];
+                x += divider.data[i];
+                dividend.data[j + i] = x;
+                x >>= bz8;
+            }
+            x += dividend.data[j + n];
+            dividend.data[j + n] = x;
+        }
+
+        div.data[j] = q;
+    }
+
+    norm(div.data);
+    norm(dividend.data);
+
+    if (d != 1)
+        dividend.divbaseappr(d);
+    mod = move(dividend);
+}
 
 const BN BN::operator / (const BN& bn) const
 {
