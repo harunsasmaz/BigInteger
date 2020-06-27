@@ -25,7 +25,8 @@ namespace {
             ba.pop_back();
     }
 
-    const BN reductionBarrettPrecomputation(const BN& mod) {
+    const BN reductionBarrettPrecomputation(const BN& mod)
+    {
         size_t rbc = mod.digit_count() * 2 + 1;
         vector<bt> ba(rbc);
         ba.back() = 1;
