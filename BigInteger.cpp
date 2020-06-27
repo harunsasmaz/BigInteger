@@ -478,3 +478,53 @@ const BN BN::operator >> (size_t shift) const {
 const BN BN::operator << (size_t shift) const {
     return move(BN(*this) <<= shift);
 }
+
+BN& BN::operator >>= (size_t shift) {
+    if (shift == 0)
+        return *this;
+    size_t baseshift = shift / bz8;
+    size_t realshift = shift - baseshift * bz8;
+
+    if (realshift == 0)
+        return *this = divbt(baseshift);
+
+    if (baseshift >= data.size()) {
+        data.resize(0);
+        data[0] = 0;
+        return *this;
+    }
+
+    for (size_t i = 0; i < data.size() - baseshift - 1; ++i) {
+        data[i] =
+            (data[i + baseshift] >> realshift) |
+            (data[i + baseshift + 1] << (bz8 - realshift));
+    }
+    data[data.size() - baseshift - 1] = data.back() >> realshift;
+    data.resize(data.size() - baseshift);
+
+    norm(data);
+    return *this;
+}
+
+BN& BN::operator <<= (size_t shift) {
+    if(shift == 0)
+        return *this;
+
+    size_t baseshift = shift / bz8;
+    size_t realshift = shift - baseshift * bz8;
+
+    if (realshift == 0)
+        return *this = mulbt(baseshift);
+
+    data.resize(data.size() + baseshift + 1, 0);
+    data.back() = data.back() >> (bz8 - realshift);
+    for (size_t i = data.size() - 1; i; --i) {
+        data[i + baseshift] =
+            (data[i - 1] >> (bz8 - realshift)) |
+            (data[i] << realshift);
+    }
+    data[baseshift] = data[0] << realshift;
+    norm(data);
+    return *this;
+}
+
