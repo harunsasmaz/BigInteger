@@ -613,4 +613,80 @@ BN BN::powmodBarrett(const BN& power, const BN& mod) const {
     return res;
 }
 
+// Root operations
+
+BN BN::sqrt() const
+{
+    if(isZero())
+        return BN::BigInteger1();
+
+    size_t rbc2 = (data.size() + 1) / 2 + 1;
+    BN x(rbc2, 0);
+
+    x.data.back() = 1;
+    BN x0;
+
+    do {
+        x0 = x;
+        x += *this / x;
+        x >>= 1;
+    } while(x0 > x);
+
+    return x0;
+}
+
+BN BN::qrt() const
+{
+    if (data.size() < max_size_fast_mul)
+        return fast_qrt();
+
+    BN res(2 * data.size() + 1, 0);
+    for (size_t i = 0; i < data.size(); ++i) {
+        bt4 cuv = res.data[2 * i] + static_cast<bt2>(data[i]) * data[i];
+        res.data[2 * i] = cuv;
+        for (size_t j = i + 1; j < data.size(); ++j) {
+            cuv = static_cast<bt4>(res.data[i + j]) +
+                ((static_cast<bt4>(data[i]) * data[j]) << 1) +
+                (cuv >> bz8);
+            res.data[i + j] = cuv;
+        }
+        cuv = res.data[i + data.size()] + (cuv >> bz8);
+        res.data[i + data.size()] = cuv;
+        res.data[i + data.size() + 1] += (cuv >> bz8);
+    }
+
+    norm(res.data);
+    return res;
+}
+
+BN BN::fast_qrt() const
+{
+    size_t n = data.size();
+
+    BN result(n + n, 0);
+
+    bt4 t = 0;
+    for(size_t s = 0; s < n + n - 1; s++) {
+
+        size_t start_index = s >= n ? s - n + 1 : 0;
+        size_t end_index = min(n - 1, s);
+        while (start_index < end_index) {
+            bt2 m = static_cast<bt2>(data[start_index]) * data[end_index];
+            t += m;
+            t += m;
+            ++start_index;
+            --end_index;
+        }
+        if (start_index == end_index)
+            t += static_cast<bt2>(data[start_index]) * data[end_index];
+
+        result.data[s] = t;
+        t = t >> bz8;
+    }
+
+    result.data[n + n - 1] = t;
+    norm(result.data);
+    return move(result);
+}
+
 

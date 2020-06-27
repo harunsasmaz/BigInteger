@@ -170,6 +170,9 @@ class BigInteger {
         vector<BigInteger> expBest_SlidePrecomp(const BigInteger& mod) const;
         BigInteger expBest_Slide(const BigInteger& exponent, const BigInteger& mod, const vector<BigInteger>& g) const;
 
+        size_t count_zero_right() const noexcept;
+        bool get_bit(size_t i) const noexcept;
+        uint64_t get64() const noexcept;   
         const vector<bt> raw() const noexcept;
 
     private:
