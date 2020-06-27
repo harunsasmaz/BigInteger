@@ -24,7 +24,6 @@ So, it is better for you to have a look at how this algorithm works
 
 * Primality tests of long precision numbers are pretty hard with brute-force way. Hence, this implementation uses [Miller-Rabin Algorithm](https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test) to check if a number is prime or not.
 
-
 ## Test
 
 * You are given a pre-defined test class which simply tests operations of BigInteger class. You may add other test criterias if you wish or you can simply run <code>main.cpp</code> to see results.
